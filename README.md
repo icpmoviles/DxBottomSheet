@@ -97,6 +97,7 @@ Muestra el boton con estilo negativo *(style = bordeless)* (Action())
 Aparte de las propias de la clase BottomSheetDialogFragment 
 
 Mostrar un objeto BottomSheetDx
+
     fun show(fragmentManager: FragmentManager)
 
 Modifica el estado del dialogo al estado inicial. Pensado para casos donde queremos mantener el dialogo y ejecutar una accion, en caso de recibir un error hay que reiniciar el estado ya que los botones se autodesactivan al invocar al listener. *Solo tiene sentido en caso de tener setControlDismiss = true. En caso contrario no es necesario controlar esto*
