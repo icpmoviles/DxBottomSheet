@@ -17,6 +17,7 @@ class DxViewModel : ViewModel() {
         object Initial : UiState()
         object OnClickPositiveButton : UiState()
         object OnClickNegativeButton : UiState()
+        object OnInputClickListener : UiState()
         object Hide: UiState()
     }
 }

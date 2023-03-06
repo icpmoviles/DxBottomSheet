@@ -47,4 +47,15 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:text="Mostrar action dialogo"/>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_input_dialogo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_action_dialogo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:text="Mostrar input dialogo"/>
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>

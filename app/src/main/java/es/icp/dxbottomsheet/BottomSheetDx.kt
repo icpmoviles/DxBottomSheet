@@ -1,6 +1,7 @@
 package es.icp.dxbottomsheet
 
 import android.app.Dialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +16,7 @@ import com.airbnb.lottie.LottieDrawable
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.textfield.TextInputLayout
 import es.icp.dxbottomsheet.databinding.BottomSheetDxBinding
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
@@ -46,6 +48,14 @@ class BottomSheetDx : BottomSheetDialogFragment() {
 
 //    private var listener : OnClickListenerDx? = null
 
+    private var inputType: Int? = null
+    private var textHint: String? = null
+    private var endIconClearText: Boolean = false
+    private var imeOptions: Int? = null
+
+    private var inputListener : ((BottomSheetDx, String) -> Unit)? = null
+
+    private var onCanelListener : ((BottomSheetDx) -> Unit)? = null
 
     companion object {
         const val TAG = "BottomSheetDx"
@@ -64,6 +74,11 @@ class BottomSheetDx : BottomSheetDialogFragment() {
         private const val ARG_NEGATIVE_TEXT_BUTTON = "argDxNegativeTextButton"
 
         private const val ARG_CONTROL_DISMISS = "argDxControlDismiss"
+
+        private const val ARG_INPUT_TYPE = "argDxInputType"
+        private const val ARG_INPUT_HINT = "argDxInputHint"
+        private const val ARG_END_ICON_CLEAR_TEXT = "argDxEndIconClearText"
+        private const val ARG_IME_OPTIONS = "argDxImeOptions"
 
 
 
@@ -84,11 +99,21 @@ class BottomSheetDx : BottomSheetDialogFragment() {
             negativeTextButton: String? = null,
             controlDismiss: Boolean = false,
             onPositiveClickButton: ((BottomSheetDx) -> Unit)? = null,
-            onNegativeClickButton: ((BottomSheetDx) -> Unit)? = null
+            onNegativeClickButton: ((BottomSheetDx) -> Unit)? = null,
+
+            inputListener: ((BottomSheetDx, String) -> Unit)? = null,
+            inputType: Int? = null,
+            textHint : String? = null,
+            endIconClearText : Boolean = true,
+            imeOptions: Int? = null,
+
+            onCanelListener: ((BottomSheetDx) -> Unit)? = null
         ) =
             BottomSheetDx().apply {
                 this.onPositiveClickButton = onPositiveClickButton
                 this.onNegativeClickButton = onNegativeClickButton
+                this.inputListener = inputListener
+                this.onCanelListener = onCanelListener
                 arguments = Bundle().apply {
                     icon?.let { putInt(ARG_ICON, it) }
                     putString(ARG_TITLE, title)
@@ -101,7 +126,10 @@ class BottomSheetDx : BottomSheetDialogFragment() {
                     putString(ARG_POSITIVE_TEXT_BUTTON, positiveTextButton)
                     putString(ARG_NEGATIVE_TEXT_BUTTON, negativeTextButton)
                     putBoolean(ARG_CONTROL_DISMISS, controlDismiss)
-
+                    inputType?.let { putInt(ARG_INPUT_TYPE, it) }
+                    putString(ARG_INPUT_HINT, textHint)
+                    putBoolean(ARG_END_ICON_CLEAR_TEXT, endIconClearText)
+                    imeOptions?.let { putInt(ARG_IME_OPTIONS, it) }
                 }
             }
 
@@ -140,7 +168,28 @@ class BottomSheetDx : BottomSheetDialogFragment() {
                         controlDismiss = builder.controlDismiss,
                         onPositiveClickButton = builder.positiveListener,
                         onNegativeClickButton = builder.negativeListener,
-                        negativeTextButton = builder.negativeTextButton
+                        negativeTextButton = builder.negativeTextButton,
+                        onCanelListener = builder.onCanelListener
+                    )
+                }
+                is Builder.Input -> {
+                    newInstance(
+                        icon = builder.icon,
+                        title = builder.title ?: "No has puesto titulo",
+                        message = builder.message,
+                        positiveTextButton = builder.positiveTextButton,
+                        negativeTextButton = builder.negativeTextButton,
+                        cancelOnTouchOutSide = builder.cancelOnTouchOutSide,
+                        cancelable = builder.cancelable,
+                        theme = builder.theme,
+                        controlDismiss = builder.controlDismiss,
+                        inputListener = builder.inputListener,
+                        inputType = builder.inputType,
+                        textHint = builder.textHint,
+                        endIconClearText = builder.endIconClearText,
+                        imeOptions = builder.imeOptions,
+                        onCanelListener = builder.onCanelListener,
+                        onNegativeClickButton = builder.negativeListener
                     )
                 }
             }
@@ -166,6 +215,11 @@ class BottomSheetDx : BottomSheetDialogFragment() {
             negativeTextButton = it.getString(ARG_NEGATIVE_TEXT_BUTTON)
 
             customTheme = it.getInt(ARG_THEME, R.style.BottomSheetDxBaseTheme)
+
+            inputType = it.getInt(ARG_INPUT_TYPE)
+            textHint = it.getString(ARG_INPUT_HINT)
+            endIconClearText = it.getBoolean(ARG_END_ICON_CLEAR_TEXT)
+            imeOptions = it.getInt(ARG_IME_OPTIONS)
         }
     }
 
@@ -224,20 +278,22 @@ class BottomSheetDx : BottomSheetDialogFragment() {
             txtTituloBottomSheet.text = title
             message?.let { txtMessageBottomSheet.text = it }
             txtMessageBottomSheet.show(message != null)
-            lottieBottomSheet.show(lottieFile != 0)
+
             lottieBottomSheet.apply {
+                show(lottieFile != 0)
                 lottieFile?.let { if (it != 0) this.setAnimation(it) }
                 this.repeatCount = if (lottieLoop) LottieDrawable.INFINITE else 0
                 // delay 600ms to play animation
                 postDelayed({ this.playAnimation() }, 600)
             }
 
-            containerButtonsBottomSheet.show(onPositiveClickButton != null || onNegativeClickButton != null)
+            containerButtonsBottomSheet.show(onPositiveClickButton != null || onNegativeClickButton != null || inputListener != null)
             btnAceptarBottomSheet.apply {
-                show(onPositiveClickButton != null)
+                show(onPositiveClickButton != null || inputListener != null)
                 positiveTextButton.takeIf { it != null }?.let { text = it }
                 setOnClickListener {
-                    viewModel.newUiState(DxViewModel.UiState.OnClickPositiveButton)
+                    if (inputListener != null) viewModel.newUiState(DxViewModel.UiState.OnInputClickListener)
+                    else viewModel.newUiState(DxViewModel.UiState.OnClickPositiveButton)
                 }
             }
 
@@ -249,7 +305,20 @@ class BottomSheetDx : BottomSheetDialogFragment() {
                 }
             }
 
-        }
+
+            inputLayoutDx.apply {
+                show(textHint != null)
+                textHint?.takeIf { it.isNotEmpty() }?.let { this.hint = it }
+                endIconMode = if (endIconClearText) TextInputLayout.END_ICON_CLEAR_TEXT else TextInputLayout.END_ICON_NONE
+            }
+
+            txtInputDx.apply {
+                this@BottomSheetDx.inputType?.let { this.inputType = it }
+                this@BottomSheetDx.imeOptions?.let { this.imeOptions = it }
+            }
+        } // fin apply binding
+
+
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.flowWithLifecycle(
@@ -267,6 +336,12 @@ class BottomSheetDx : BottomSheetDialogFragment() {
                         onPositiveClickButton?.invoke(this@BottomSheetDx)
                         if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
                     }
+                    is DxViewModel.UiState.OnInputClickListener -> {
+                        binding.btnAceptarBottomSheet.isEnabled = false
+                        binding.btnCancelarBottomSheet.isEnabled = false
+                        inputListener?.invoke(this@BottomSheetDx, binding.txtInputDx.text.toString())
+                        if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
+                    }
                     is DxViewModel.UiState.OnClickNegativeButton -> {
                         binding.btnAceptarBottomSheet.isEnabled = false
                         binding.btnCancelarBottomSheet.isEnabled = false
@@ -281,6 +356,10 @@ class BottomSheetDx : BottomSheetDialogFragment() {
         }
     }
 
+    override fun onCancel(dialog: DialogInterface) {
+        onCanelListener?.invoke(this)
+        super.onCancel(dialog)
+    }
 
     fun show(fragmentManager: FragmentManager) = show(fragmentManager, TAG)
 
@@ -339,13 +418,14 @@ class BottomSheetDx : BottomSheetDialogFragment() {
             internal var positiveListener: ((BottomSheetDx) -> Unit)? = null
             internal var negativeListener: ((BottomSheetDx) -> Unit)? = null
 
+            internal var onCanelListener: ((BottomSheetDx) -> Unit)? = null
+
             fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             fun setTitle(title: String) = apply { this.title = title }
             fun setMessage(message: String) = apply { this.message = message }
             fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
             fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
             fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
-            fun setTextButton(textButton: String) = apply { this.positiveTextButton = textButton }
             fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
             fun setPositiveButton(textButton: String, onClickListener: ((BottomSheetDx) -> Unit)?) = apply {
                 this.positiveTextButton = textButton
@@ -355,8 +435,58 @@ class BottomSheetDx : BottomSheetDialogFragment() {
                 this.negativeTextButton = textButton
                 this.negativeListener = onClickListener
             }
+            fun setOnCanelListener(onCanelListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.onCanelListener = onCanelListener
+            }
         }
 
+        class Input : Builder() {
+            internal var icon: Int? = null
+            internal var title: String? = null
+            internal var message: String? = null
+            internal var cancelOnTouchOutSide: Boolean = true
+            internal var cancelable: Boolean = true
+            internal var controlDismiss: Boolean = false
+            internal var positiveTextButton: String? = null
+            internal var negativeTextButton: String? = null
+            internal var theme: Int? = null
+
+            internal var inputType : Int? = null
+            internal var textHint : String? = null
+            internal var endIconClearText : Boolean = true
+            internal var imeOptions : Int? = null
+
+            internal var inputListener: ((BottomSheetDx, String) -> Unit)? = null
+            internal var negativeListener: ((BottomSheetDx) -> Unit)? = null
+            internal var onCanelListener: ((BottomSheetDx) -> Unit)? = null
+
+
+            fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
+            fun setTitle(title: String) = apply { this.title = title }
+            fun setMessage(message: String) = apply { this.message = message }
+            fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
+            fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
+            fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
+            fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            fun setInputType (inputType: Int) = apply { this.inputType = inputType }
+            fun setTextHint (texto : String) = apply { this.textHint = texto }
+            fun setEndIconClearText (value: Boolean) = apply { this.endIconClearText = value }
+            fun setImeOptions (editorInfo: Int) = apply { this.imeOptions = editorInfo }
+
+            fun setPositiveButton(textButton: String, onClickListener: ((BottomSheetDx, String) -> Unit)?) = apply {
+                this.positiveTextButton = textButton
+                this.inputListener = onClickListener
+            }
+            fun setNegativeButton(textButton: String, onClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.negativeTextButton = textButton
+                this.negativeListener = onClickListener
+            }
+
+            fun setOnCancelListener(onCanelListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.onCanelListener = onCanelListener
+            }
+
+        }
     }
 
 }
