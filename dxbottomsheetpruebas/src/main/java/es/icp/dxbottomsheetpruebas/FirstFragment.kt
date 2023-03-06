@@ -1,10 +1,13 @@
 package es.icp.dxbottomsheetpruebas
 
 import android.os.Bundle
+import android.text.InputType
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -90,6 +93,24 @@ class FirstFragment : Fragment() {
                         }
                         fail = !fail
                     }
+                }
+                .buildAndShow(childFragmentManager)
+        }
+
+        binding.btnInputDialogo.setOnClickListener {
+            BottomSheetDx.Builder.Input()
+                .setIcon(es.icp.dxbottomsheet.R.drawable.ic_wifi)
+                .setTitle("Dialogo de entrada")
+                .setMessage("Mensaje de prueba del dialogo de entrada")
+                .setPositiveButton("Aceptar") { dx, text ->
+                    Log.w("DIALOGO", "Texto introducido: $text")
+                }
+                .setTextHint("Introduce un texto")
+                .setInputType( InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
+                .setImeOptions(EditorInfo.IME_ACTION_NONE)
+                .setEndIconClearText(false)
+                .setOnCancelListener { dx ->
+                    Log.w("DIALOGO", "Dialogo cancelado")
                 }
                 .buildAndShow(childFragmentManager)
         }
