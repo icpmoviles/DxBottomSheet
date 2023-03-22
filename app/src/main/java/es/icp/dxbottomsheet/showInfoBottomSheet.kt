@@ -28,7 +28,7 @@ fun FragmentManager.showLottieBottomSheet(
     @RawRes lottieFile: Int,
     lottieLoop: Boolean = true
 ) =
-    BottomSheetDx.Builder.Lottie()
+    BottomSheetDx.Builder.LottieOrImage()
         .setIcon(icon)
         .setTitle(title)
         .setLottie(lottieFile)

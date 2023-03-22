@@ -1,5 +1,7 @@
 package es.icp.dxbottomsheet
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,12 +14,28 @@ class DxViewModel : ViewModel() {
 
     fun newUiState(uiState: UiState) = _uiState.update { uiState }
 
+    private val _textoInput = MutableLiveData("")
+    val textoInput: LiveData<String> get() = _textoInput
+    fun setTextoInput(texto: String) = _textoInput.postValue(texto)
+
+    private val _numPicker = MutableLiveData(0)
+    val numPicker: LiveData<Int> get() = _numPicker
+    fun plusNumPicker() = _numPicker.postValue(_numPicker.value?.plus(1))
+    fun minusNumPicker() { if (_numPicker.value != 0) _numPicker.postValue(_numPicker.value?.minus(1)) }
+
+    private val _dropSelecction = MutableLiveData<Int?>()
+    val dropSelecction: LiveData<Int?> get() = _dropSelecction
+    fun setDropSelecction(position: Int?) = _dropSelecction.postValue(position)
 
     sealed class UiState {
         object Initial : UiState()
         object OnClickPositiveButton : UiState()
         object OnClickNegativeButton : UiState()
         object OnInputClickListener : UiState()
+        object OnNumPickerClickListener : UiState()
+
+        object OnDropDownClickListener : UiState()
+        object Loading : UiState()
         object Hide: UiState()
     }
 }
