@@ -2,26 +2,39 @@ package es.icp.dxbottomsheet
 
 import android.app.Dialog
 import android.content.DialogInterface
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewStub
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.annotation.DrawableRes
+import androidx.annotation.LayoutRes
 import androidx.annotation.RawRes
 import androidx.annotation.StyleRes
+import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.flowWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.viewbinding.ViewBinding
+import com.airbnb.lottie.LottieAnimationView
 import com.airbnb.lottie.LottieDrawable
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import es.icp.dxbottomsheet.databinding.BottomSheetDxBinding
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 
-class BottomSheetDx : BottomSheetDialogFragment() {
+open class BottomSheetDx : BottomSheetDialogFragment() {
 
     private var _binding : BottomSheetDxBinding? = null
     private val binding get() = _binding!!
@@ -29,33 +42,43 @@ class BottomSheetDx : BottomSheetDialogFragment() {
     private val viewModel: DxViewModel by viewModels()
 
     // CAMPOS COMUNES
+    private var typeLayout: TypeLayout? = null
     private var icon: Int? = null
     private var title: String? = null
     private var message: String? = null
     private var cancelOnTouchOutSide: Boolean = true
     private var cancel: Boolean = true
+    private var controlDismiss: Boolean = false
     private var customTheme: Int? = null
 
-    // CAMPOS PARA LOTTIE
+    // CAMPOS PARA LOTTIE / IMAGEN
     private var lottieFile: Int? = null
     private var lottieLoop: Boolean = true
+    private var imagenFile: Int? = null
 
-    private var positiveTextButton: String? = null
-    private var negativeTextButton: String? = null
-    private var controlDismiss: Boolean = false
-    private var onPositiveClickButton: ((BottomSheetDx) -> Unit)? = null
-    private var onNegativeClickButton: ((BottomSheetDx) -> Unit)? = null
 
-//    private var listener : OnClickListenerDx? = null
-
+    //CAMPOS PARA INPUT
     private var inputType: Int? = null
     private var textHint: String? = null
     private var endIconClearText: Boolean = false
     private var imeOptions: Int? = null
 
-    private var inputListener : ((BottomSheetDx, String) -> Unit)? = null
+    private var dropdownItems: List<String>? = null
 
-    private var onCanelListener : ((BottomSheetDx) -> Unit)? = null
+    //LISTENERS
+    private var onPositiveClickButton: ((BottomSheetDx) -> Unit)? = null
+    private var onNegativeClickButton: ((BottomSheetDx) -> Unit)? = null
+    private var inputListener : ((BottomSheetDx, String) -> Unit)? = null
+    private var onCancelListener : (() -> Unit)? = null
+    private var onPickerNumberListener : ((BottomSheetDx, Int) -> Unit)? = null
+    private var onSelectorListener: ((BottomSheetDx, Int?) -> Unit)? = null
+
+    private var positiveTextButton: String? = null
+    private var negativeTextButton: String? = null
+
+    private var customLayout: Int? = null
+
+    private var viewStubCallBack : ((ViewStub) -> Unit)? = null
 
     companion object {
         const val TAG = "BottomSheetDx"
@@ -63,25 +86,25 @@ class BottomSheetDx : BottomSheetDialogFragment() {
         private const val ARG_TITLE = "argDxTitle"
         private const val ARG_MESSAGE = "argDxMessage"
         private const val ARG_CANCEL_ON_TOUCH_OUTSIDE = "argDxCancelOnTouchOutSide"
+        private const val ARG_CONTROL_DISMISS = "argDxControlDismiss"
         private const val ARG_CANCELABLE = "argDxTcancelable"
+
         private const val ARG_THEME = "argDxTheme"
-
         private const val ARG_LOTTIE_FILE = "argDxLottieFile"
-        private const val ARG_LOTTIE_LOOP = "argDxLottieLoop"
 
+        private const val ARG_LOTTIE_LOOP = "argDxLottieLoop"
+        private const val ARG_IMAGEN_FILE = "argDxImagenFile"
 
         private const val ARG_POSITIVE_TEXT_BUTTON = "argDxPositiveTextButton"
         private const val ARG_NEGATIVE_TEXT_BUTTON = "argDxNegativeTextButton"
-
-        private const val ARG_CONTROL_DISMISS = "argDxControlDismiss"
-
         private const val ARG_INPUT_TYPE = "argDxInputType"
         private const val ARG_INPUT_HINT = "argDxInputHint"
         private const val ARG_END_ICON_CLEAR_TEXT = "argDxEndIconClearText"
         private const val ARG_IME_OPTIONS = "argDxImeOptions"
 
+        private const val ARG_TYPE_LAYOUT = "argDxTypeLayout"
 
-
+        private const val ARG_CUSTOM_LAYOUT = "argDxCustomLayout"
 
         @JvmStatic
         private fun newInstance(
@@ -94,26 +117,39 @@ class BottomSheetDx : BottomSheetDialogFragment() {
 
             @RawRes lottieFile: Int? = null,
             lottieLoop: Boolean = true,
+            @DrawableRes imagenFile: Int? = null,
 
             positiveTextButton: String? = null,
             negativeTextButton: String? = null,
             controlDismiss: Boolean = false,
-            onPositiveClickButton: ((BottomSheetDx) -> Unit)? = null,
-            onNegativeClickButton: ((BottomSheetDx) -> Unit)? = null,
-
-            inputListener: ((BottomSheetDx, String) -> Unit)? = null,
             inputType: Int? = null,
+
             textHint : String? = null,
             endIconClearText : Boolean = true,
             imeOptions: Int? = null,
+            typeLayout: TypeLayout? = null,
 
-            onCanelListener: ((BottomSheetDx) -> Unit)? = null
+            onCancelListener: (() -> Unit)? = null,
+            onPositiveClickButton: ((BottomSheetDx) -> Unit)? = null,
+            onNegativeClickButton: ((BottomSheetDx) -> Unit)? = null,
+            inputListener: ((BottomSheetDx, String) -> Unit)? = null,
+            onPickerNumberListener : ((BottomSheetDx, Int) -> Unit)? = null,
+            onSelectorListener: ((BottomSheetDx, Int?) -> Unit)? = null,
+            dropdownItems: List<String>? = null,
+
+            @LayoutRes customLayout: Int? = null,
+            viewStubCallBack: ((ViewStub) -> Unit)? = null
+
         ) =
             BottomSheetDx().apply {
                 this.onPositiveClickButton = onPositiveClickButton
                 this.onNegativeClickButton = onNegativeClickButton
                 this.inputListener = inputListener
-                this.onCanelListener = onCanelListener
+                this.onCancelListener = onCancelListener
+                this.onPickerNumberListener = onPickerNumberListener
+                this.dropdownItems = dropdownItems
+                this.onSelectorListener = onSelectorListener
+                this.viewStubCallBack = viewStubCallBack
                 arguments = Bundle().apply {
                     icon?.let { putInt(ARG_ICON, it) }
                     putString(ARG_TITLE, title)
@@ -130,37 +166,46 @@ class BottomSheetDx : BottomSheetDialogFragment() {
                     putString(ARG_INPUT_HINT, textHint)
                     putBoolean(ARG_END_ICON_CLEAR_TEXT, endIconClearText)
                     imeOptions?.let { putInt(ARG_IME_OPTIONS, it) }
+                    imagenFile?.let { putInt(ARG_IMAGEN_FILE, it) }
+                    typeLayout?.let { putSerializable(ARG_TYPE_LAYOUT, it) }
+                    customLayout?.let { putInt(ARG_CUSTOM_LAYOUT, it) }
                 }
             }
 
-        private fun newInstanceBuilder(builder: Builder) =
+        fun newInstanceBuilder(builder: Builder) =
             when (builder) {
                 is Builder.Info -> {
                     newInstance(
+                        icon = builder.icon,
                         title = builder.title?:"No has puesto titulo",
                         message = builder.message,
-                        icon = builder.icon,
                         cancelOnTouchOutSide = builder.cancelOnTouchOutSide,
                         cancelable = builder.cancelable,
-                        theme = builder.theme
+                        theme = builder.theme,
+                        typeLayout = TypeLayout.INFO
                     )
                 }
-                is Builder.Lottie -> {
+                is Builder.LottieOrImage -> {
                     newInstance(
-                        title = builder.title?:"No has puesto titulo",
                         icon = builder.icon,
+                        title = builder.title?:"No has puesto titulo",
+                        message = builder.message,
                         lottieFile = builder.lottieFile,
                         lottieLoop = builder.lottieLoop,
                         cancelOnTouchOutSide = builder.cancelOnTouchOutSide,
                         cancelable = builder.cancelable,
-                        theme = builder.theme
+                        positiveTextButton = builder.positiveTextButton,
+                        onPositiveClickButton = builder.positiveListener,
+                        theme = builder.theme,
+                        imagenFile = builder.imageFile,
+                        typeLayout = if (builder.lottieFile != null) TypeLayout.LOTTIE else TypeLayout.IMAGE
                     )
                 }
                 is Builder.Action -> {
                     newInstance(
+                        icon = builder.icon,
                         title = builder.title?:"No has puesto titulo",
                         message = builder.message,
-                        icon = builder.icon,
                         positiveTextButton = builder.positiveTextButton,
                         cancelOnTouchOutSide = builder.cancelOnTouchOutSide,
                         cancelable = builder.cancelable,
@@ -169,7 +214,8 @@ class BottomSheetDx : BottomSheetDialogFragment() {
                         onPositiveClickButton = builder.positiveListener,
                         onNegativeClickButton = builder.negativeListener,
                         negativeTextButton = builder.negativeTextButton,
-                        onCanelListener = builder.onCanelListener
+                        onCancelListener = builder.onCancelListener,
+                        typeLayout = TypeLayout.ACTION
                     )
                 }
                 is Builder.Input -> {
@@ -188,8 +234,65 @@ class BottomSheetDx : BottomSheetDialogFragment() {
                         textHint = builder.textHint,
                         endIconClearText = builder.endIconClearText,
                         imeOptions = builder.imeOptions,
-                        onCanelListener = builder.onCanelListener,
-                        onNegativeClickButton = builder.negativeListener
+                        onCancelListener = builder.onCancelListener,
+                        onNegativeClickButton = builder.negativeListener,
+                        typeLayout = TypeLayout.INPUT,
+                        dropdownItems = builder.dropdownItems
+                    )
+                }
+                is Builder.Selector -> {
+                    newInstance(
+                        icon = builder.icon,
+                        title = builder.title ?: "No has puesto titulo",
+                        message = builder.message,
+                        positiveTextButton = builder.positiveTextButton,
+                        negativeTextButton = builder.negativeTextButton,
+                        cancelOnTouchOutSide = builder.cancelOnTouchOutSide,
+                        cancelable = builder.cancelable,
+                        theme = builder.theme,
+                        controlDismiss = builder.controlDismiss,
+                        textHint = builder.textHint,
+                        onCancelListener = builder.onCancelListener,
+                        onNegativeClickButton = builder.negativeListener,
+                        typeLayout = TypeLayout.SELECTOR,
+                        dropdownItems = builder.dropdownItems,
+                        onSelectorListener = builder.dropdownListener
+                    )
+                }
+                is Builder.PickerNumber -> {
+                    newInstance(
+                        icon = builder.icon,
+                        title = builder.title ?: "No has puesto titulo",
+                        message = builder.message,
+                        positiveTextButton = builder.positiveTextButton,
+                        cancelOnTouchOutSide = builder.cancelOnTouchOutSide,
+                        negativeTextButton = builder.negativeTextButton,
+                        onNegativeClickButton = builder.negativeListener,
+                        cancelable = builder.cancelable,
+                        theme = builder.theme,
+                        controlDismiss = builder.controlDismiss,
+                        onPickerNumberListener = builder.onPickerNumberListener,
+                        typeLayout = TypeLayout.PICKER_NUMBER
+                    )
+                }
+                is Builder.Custom -> {
+                    newInstance(
+                        icon = builder.icon,
+                        title = builder.title ?: "No has puesto titulo",
+                        message = builder.message,
+                        positiveTextButton = builder.positiveTextButton,
+                        cancelOnTouchOutSide = builder.cancelOnTouchOutSide,
+                        negativeTextButton = builder.negativeTextButton,
+                        onNegativeClickButton = builder.negativeListener,
+                        cancelable = builder.cancelable,
+                        theme = builder.theme,
+                        controlDismiss = builder.controlDismiss,
+                        onCancelListener = builder.onCancelListener,
+                        onPositiveClickButton = builder.positiveListener,
+                        typeLayout = TypeLayout.CUSTOM,
+                        customLayout = builder.customLayout,
+                        viewStubCallBack = builder.viewStubCallBack
+
                     )
                 }
             }
@@ -220,9 +323,20 @@ class BottomSheetDx : BottomSheetDialogFragment() {
             textHint = it.getString(ARG_INPUT_HINT)
             endIconClearText = it.getBoolean(ARG_END_ICON_CLEAR_TEXT)
             imeOptions = it.getInt(ARG_IME_OPTIONS)
+            imagenFile = it.getInt(ARG_IMAGEN_FILE)
+
+            typeLayout =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                    it.getSerializable(ARG_TYPE_LAYOUT, TypeLayout::class.java)
+                else   it.getSerializable(ARG_TYPE_LAYOUT) as TypeLayout
+
+            customLayout = it.getInt(ARG_CUSTOM_LAYOUT)
         }
     }
-
+    override fun onCancel(dialog: DialogInterface) {
+        onCancelListener?.invoke()
+        super.onCancel(dialog)
+    }
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
@@ -269,56 +383,20 @@ class BottomSheetDx : BottomSheetDialogFragment() {
         }
     }
 
-
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.apply {
-            icon?.let { if (it != 0) binding.iconBottomSheet.setImageResource(it) }
-            txtTituloBottomSheet.text = title
-            message?.let { txtMessageBottomSheet.text = it }
-            txtMessageBottomSheet.show(message != null)
+        setupCommonViews()
+        setupButtons()
 
-            lottieBottomSheet.apply {
-                show(lottieFile != 0)
-                lottieFile?.let { if (it != 0) this.setAnimation(it) }
-                this.repeatCount = if (lottieLoop) LottieDrawable.INFINITE else 0
-                // delay 600ms to play animation
-                postDelayed({ this.playAnimation() }, 600)
-            }
-
-            containerButtonsBottomSheet.show(onPositiveClickButton != null || onNegativeClickButton != null || inputListener != null)
-            btnAceptarBottomSheet.apply {
-                show(onPositiveClickButton != null || inputListener != null)
-                positiveTextButton.takeIf { it != null }?.let { text = it }
-                setOnClickListener {
-                    if (inputListener != null) viewModel.newUiState(DxViewModel.UiState.OnInputClickListener)
-                    else viewModel.newUiState(DxViewModel.UiState.OnClickPositiveButton)
-                }
-            }
-
-            btnCancelarBottomSheet.apply {
-                show(onNegativeClickButton != null)
-                negativeTextButton.takeIf { it != null }?.let { text = it }
-                setOnClickListener {
-                    viewModel.newUiState(DxViewModel.UiState.OnClickNegativeButton)
-                }
-            }
-
-
-            inputLayoutDx.apply {
-                show(textHint != null)
-                textHint?.takeIf { it.isNotEmpty() }?.let { this.hint = it }
-                endIconMode = if (endIconClearText) TextInputLayout.END_ICON_CLEAR_TEXT else TextInputLayout.END_ICON_NONE
-            }
-
-            txtInputDx.apply {
-                this@BottomSheetDx.inputType?.let { this.inputType = it }
-                this@BottomSheetDx.imeOptions?.let { this.imeOptions = it }
-            }
-        } // fin apply binding
-
-
+        when (typeLayout) {
+            TypeLayout.LOTTIE -> setupViewLottie()
+            TypeLayout.IMAGE -> setupViewImage()
+            TypeLayout.INPUT -> setupViewInput()
+            TypeLayout.PICKER_NUMBER -> setupViewPickerNumber()
+            TypeLayout.SELECTOR -> setupViewSelector()
+            TypeLayout.CUSTOM -> setupViewCustom()
+            else -> {}
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.flowWithLifecycle(
@@ -329,23 +407,36 @@ class BottomSheetDx : BottomSheetDialogFragment() {
                     is DxViewModel.UiState.Initial -> {
                         binding.btnAceptarBottomSheet.isEnabled = true
                         binding.btnCancelarBottomSheet.isEnabled = true
+                        binding.dxProgressBar.hide()
                     }
-                    is DxViewModel.UiState.OnClickPositiveButton -> {
+                    is DxViewModel.UiState.Loading -> {
                         binding.btnAceptarBottomSheet.isEnabled = false
                         binding.btnCancelarBottomSheet.isEnabled = false
+                        binding.dxProgressBar.visible()
+                    }
+                    is DxViewModel.UiState.OnClickPositiveButton -> {
+                        viewModel.newUiState(DxViewModel.UiState.Loading)
                         onPositiveClickButton?.invoke(this@BottomSheetDx)
                         if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
                     }
                     is DxViewModel.UiState.OnInputClickListener -> {
-                        binding.btnAceptarBottomSheet.isEnabled = false
-                        binding.btnCancelarBottomSheet.isEnabled = false
-                        inputListener?.invoke(this@BottomSheetDx, binding.txtInputDx.text.toString())
+                        viewModel.newUiState(DxViewModel.UiState.Loading)
+                        inputListener?.invoke(this@BottomSheetDx, viewModel.textoInput.value.toString())
                         if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
                     }
                     is DxViewModel.UiState.OnClickNegativeButton -> {
-                        binding.btnAceptarBottomSheet.isEnabled = false
-                        binding.btnCancelarBottomSheet.isEnabled = false
+                        viewModel.newUiState(DxViewModel.UiState.Loading)
                         onNegativeClickButton?.invoke(this@BottomSheetDx)
+                        if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
+                    }
+                    is DxViewModel.UiState.OnNumPickerClickListener -> {
+                        viewModel.newUiState(DxViewModel.UiState.Loading)
+                        onPickerNumberListener?.invoke(this@BottomSheetDx, viewModel.numPicker.value ?: 0)
+                        if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
+                    }
+                    is DxViewModel.UiState.OnDropDownClickListener -> {
+                        viewModel.newUiState(DxViewModel.UiState.Loading)
+                        onSelectorListener?.invoke(this@BottomSheetDx, viewModel.dropSelecction.value)
                         if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
                     }
                     is DxViewModel.UiState.Hide -> {
@@ -356,9 +447,116 @@ class BottomSheetDx : BottomSheetDialogFragment() {
         }
     }
 
-    override fun onCancel(dialog: DialogInterface) {
-        onCanelListener?.invoke(this)
-        super.onCancel(dialog)
+    private fun setupViewCustom() = binding.apply {
+        customLayout.takeIf { it != 0 }?.let { viewStub.layoutResource = it }
+        viewStubCallBack?.invoke(viewStub)
+    }
+
+    private fun setupCommonViews() = binding.apply {
+        icon.takeIf { it != 0 }?.let { iconBottomSheet.setImageResource(it) }
+        txtTituloBottomSheet.text = title
+        txtMessageBottomSheet.apply {
+            show(message != null)
+            text = message.orEmpty()
+        }
+    }
+    private fun setupButtons() = binding.apply {
+        containerButtonsBottomSheet.show(onPositiveClickButton != null || onNegativeClickButton != null || inputListener != null || onPickerNumberListener != null || onSelectorListener != null)
+        btnAceptarBottomSheet.apply {
+            show(onPositiveClickButton != null || inputListener != null || onPickerNumberListener != null || onSelectorListener != null)
+            text = positiveTextButton.orEmpty()
+            setOnClickListener {
+                when {
+                    inputListener != null -> viewModel.newUiState(DxViewModel.UiState.OnInputClickListener)
+                    onPickerNumberListener != null ->viewModel.newUiState(DxViewModel.UiState.OnNumPickerClickListener)
+                    onSelectorListener != null -> viewModel.newUiState(DxViewModel.UiState.OnDropDownClickListener)
+                    else -> viewModel.newUiState(DxViewModel.UiState.OnClickPositiveButton)
+                }
+            }
+        }
+
+        btnCancelarBottomSheet.apply {
+            show(onNegativeClickButton != null)
+            text = negativeTextButton.orEmpty()
+            setOnClickListener {
+                viewModel.newUiState(DxViewModel.UiState.OnClickNegativeButton)
+            }
+        }
+
+    }
+    private fun setupViewPickerNumber() = binding.apply {
+        viewStub.layoutResource = R.layout.picker_number_layout
+        viewStub.inflate().also {
+            it.findViewById<ImageView>(R.id.picker_minus).apply {
+                setOnClickListener { viewModel.minusNumPicker() }
+            }
+            it.findViewById<ImageView>(R.id.picker_mas).apply {
+                setOnClickListener { viewModel.plusNumPicker() }
+            }
+            it.findViewById<TextView>(R.id.txt_number).apply {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    viewModel.numPicker.observe(viewLifecycleOwner) {txt ->
+                        text = txt.toString()
+                    }
+                }
+            }
+        }
+    }
+    private fun setupViewImage() = binding.apply {
+        imagenFile.takeIf { it != 0 }?.let { img ->
+            viewStub.layoutResource = R.layout.imagen_layout
+            viewStub.inflate().also {
+                it.findViewById<ImageView>(R.id.img_dx).apply { setImageResource(img) }
+            }
+        }
+    }
+    private fun setupViewLottie() = binding.apply {
+        lottieFile.takeIf { it != 0 }?.let { lottie ->
+            viewStub.layoutResource = R.layout.lottie_layout
+            viewStub.inflate().also {
+                it.findViewById<LottieAnimationView>(R.id.lottie_bottom_sheet)
+                    .apply{
+                        this.setAnimation(lottie)
+                        this.repeatCount = if (lottieLoop) LottieDrawable.INFINITE else 0
+                        postDelayed({ this.playAnimation() }, 600)
+                    }
+
+            }
+        }
+    }
+    private fun setupViewInput() = binding.apply {
+
+        viewStub.layoutResource = R.layout.input_layout
+        viewStub.inflate().also { vs ->
+            vs.findViewById<TextInputLayout>(R.id.input_layout_dx)
+                .apply {
+                    this.hint = textHint.orEmpty()
+                    this.endIconMode = if (endIconClearText) TextInputLayout.END_ICON_CLEAR_TEXT else TextInputLayout.END_ICON_NONE
+                }
+            vs.findViewById<TextInputEditText>(R.id.txt_input_dx)
+                .apply {
+                    this@BottomSheetDx.inputType?.let { this.inputType = it }
+                    this@BottomSheetDx.imeOptions?.let { this.imeOptions = it }
+                    this.doOnTextChanged { text, _, _, _ -> viewModel.setTextoInput(text.toString()) }
+                }
+        }
+    }
+
+    private fun setupViewSelector() = binding.apply {
+        viewStub.layoutResource = R.layout.dropdown_layout
+        viewStub.inflate().also { vs ->
+            vs.findViewById<TextInputLayout>(R.id.dropdown_layout_dx)
+                .apply {this.hint = textHint.orEmpty() }
+
+            vs.findViewById<AutoCompleteTextView>(R.id.dropdown_dx)
+                .apply {
+                    setAdapter(ArrayAdapter(requireContext(), android.R.layout.select_dialog_item, dropdownItems?.toMutableList().orEmpty()))
+                    setOnClickListener { showDropDown() }
+                    setOnItemClickListener { parent, view, position, id ->
+                        viewModel.setDropSelecction(position)
+                    }
+                }
+        }
     }
 
     fun show(fragmentManager: FragmentManager) = show(fragmentManager, TAG)
@@ -366,127 +564,227 @@ class BottomSheetDx : BottomSheetDialogFragment() {
     fun dissmis() = viewModel.newUiState(DxViewModel.UiState.Hide)
     fun setInitialUiState() = viewModel.newUiState(DxViewModel.UiState.Initial)
 
+    enum class TypeLayout {
+        INFO, ACTION, LOTTIE, INPUT, IMAGE, PICKER_NUMBER, SELECTOR, CUSTOM
+    }
+
     sealed class Builder {
 
+        internal var icon: Int? = null
+        internal var title: String? = null
+        internal var message: String? = null
+        internal var cancelOnTouchOutSide: Boolean = true
+        internal var cancelable: Boolean = true
+        internal var controlDismiss: Boolean = false
+        internal var theme: Int? = null
+
+        internal var positiveTextButton: String? = null
+        internal var positiveListener: ((BottomSheetDx) -> Unit)? = null
+
+        internal var negativeTextButton: String? = null
+        internal var negativeListener: ((BottomSheetDx) -> Unit)? = null
+
+        internal var onCancelListener: (() -> Unit)? = null
+
         fun build() = newInstanceBuilder(this)
+
         fun buildAndShow(fragmentManager: FragmentManager) = build().show(fragmentManager)
+        @Override protected abstract fun setIcon(@DrawableRes icon: Int): Builder
+        @Override protected abstract fun setTitle(title: String): Builder
+        @Override protected abstract fun setMessage(message: String): Builder
+        @Override protected abstract fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean): Builder
+        @Override protected abstract fun setCancelable(cancelable: Boolean): Builder
+        @Override protected abstract fun setTheme(@StyleRes theme: Int): Builder
+        @Override protected abstract fun setControlDismiss(controlDismiss: Boolean) : Builder
+        @Override protected abstract fun setOnCancelListener(onCancelListener: (() -> Unit)?): Builder
+
 
         class Info : Builder() {
-            internal var icon: Int? = null
-            internal var title: String? = null
-            internal var message: String? = null
-            internal var cancelOnTouchOutSide: Boolean = true
-            internal var cancelable: Boolean = true
-            internal var theme: Int? = null
+            public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
+            public override fun setTitle(title: String) = apply { this.title = title }
+            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
+            public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
+            public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
+            public override fun setOnCancelListener(onCancelListener: (() -> Unit)?) = apply { this.onCancelListener = onCancelListener }
 
-            fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
-            fun setTitle(title: String) = apply { this.title = title }
-            fun setMessage(message: String) = apply { this.message = message }
-            fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
-            fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
-            fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            fun setPositiveButton(textButton: String, onPositiveClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.positiveTextButton = textButton
+                this.positiveListener = onPositiveClickListener
+            }
+            fun setNegativeButton(textButton: String, onNegativeClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.negativeTextButton = textButton
+                this.negativeListener = onNegativeClickListener
+            }
+
         }
-        class Lottie : Builder() {
-            internal var icon: Int? = null
-            internal var title: String? = null
-            internal var cancelOnTouchOutSide: Boolean = true
-            internal var cancelable: Boolean = true
+        class LottieOrImage : Builder() {
+
             internal var lottieFile: Int? = null
             internal var lottieLoop: Boolean = true
-            internal var theme: Int? = null
+            internal var imageFile: Int? = null
 
-            fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
-            fun setTitle(title: String) = apply { this.title = title }
-            fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
-            fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
-            fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
+            public override fun setTitle(title: String) = apply { this.title = title }
+            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
+            public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
+            public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
 
+            public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
             fun setLottie(@RawRes lottieRaw: Int) = apply { this.lottieFile = lottieRaw }
             fun setLottieLoop(lottieLoop: Boolean) = apply { this.lottieLoop = lottieLoop }
+            fun setImage(@DrawableRes image: Int) = apply { this.imageFile = image }
+
+            public override fun setOnCancelListener(onCancelListener: (() -> Unit)?) = apply { this.onCancelListener = onCancelListener }
+
+            fun setPositiveButton(textButton: String, onPositiveClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.positiveTextButton = textButton
+                this.positiveListener = onPositiveClickListener
+            }
+            fun setNegativeButton(textButton: String, onNegativeClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.negativeTextButton = textButton
+                this.negativeListener = onNegativeClickListener
+            }
+
+
         }
         class Action : Builder() {
-            internal var icon: Int? = null
-            internal var title: String? = null
-            internal var message: String? = null
-            internal var cancelOnTouchOutSide: Boolean = true
-            internal var cancelable: Boolean = true
-            internal var controlDismiss: Boolean = false
-            internal var positiveTextButton: String? = null
-            internal var negativeTextButton: String? = null
-            internal var theme: Int? = null
 
-            internal var positiveListener: ((BottomSheetDx) -> Unit)? = null
-            internal var negativeListener: ((BottomSheetDx) -> Unit)? = null
+            public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
+            public override fun setTitle(title: String) = apply { this.title = title }
+            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
+            public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
+            public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
+            public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
 
-            internal var onCanelListener: ((BottomSheetDx) -> Unit)? = null
+            public override fun setOnCancelListener(onCancelListener: (() -> Unit)?) = apply { this.onCancelListener = onCancelListener }
 
-            fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
-            fun setTitle(title: String) = apply { this.title = title }
-            fun setMessage(message: String) = apply { this.message = message }
-            fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
-            fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
-            fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
-            fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
-            fun setPositiveButton(textButton: String, onClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+            fun setPositiveButton(textButton: String, onPositiveClickListener: ((BottomSheetDx) -> Unit)?) = apply {
                 this.positiveTextButton = textButton
-                this.positiveListener = onClickListener
+                this.positiveListener = onPositiveClickListener
             }
-            fun setNegativeButton(textButton: String, onClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+            fun setNegativeButton(textButton: String, onNegativeClickListener: ((BottomSheetDx) -> Unit)?) = apply {
                 this.negativeTextButton = textButton
-                this.negativeListener = onClickListener
+                this.negativeListener = onNegativeClickListener
             }
-            fun setOnCanelListener(onCanelListener: ((BottomSheetDx) -> Unit)?) = apply {
-                this.onCanelListener = onCanelListener
-            }
-        }
 
+        }
         class Input : Builder() {
-            internal var icon: Int? = null
-            internal var title: String? = null
-            internal var message: String? = null
-            internal var cancelOnTouchOutSide: Boolean = true
-            internal var cancelable: Boolean = true
-            internal var controlDismiss: Boolean = false
-            internal var positiveTextButton: String? = null
-            internal var negativeTextButton: String? = null
-            internal var theme: Int? = null
 
             internal var inputType : Int? = null
             internal var textHint : String? = null
             internal var endIconClearText : Boolean = true
             internal var imeOptions : Int? = null
-
             internal var inputListener: ((BottomSheetDx, String) -> Unit)? = null
-            internal var negativeListener: ((BottomSheetDx) -> Unit)? = null
-            internal var onCanelListener: ((BottomSheetDx) -> Unit)? = null
+            internal var dropdownItems: List<String>? = null
+            public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
+            public override fun setTitle(title: String) = apply { this.title = title }
+            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
+            public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
+            public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
+            public override fun setOnCancelListener(onCancelListener: (() -> Unit)?) = apply { this.onCancelListener = onCancelListener }
 
+            fun setInputListener(textButton: String, onInputListener: ((BottomSheetDx, String) -> Unit)?) = apply {
+                this.positiveTextButton = textButton
+                this.inputListener = onInputListener
+            }
 
-            fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
-            fun setTitle(title: String) = apply { this.title = title }
-            fun setMessage(message: String) = apply { this.message = message }
-            fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
-            fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
-            fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
-            fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            fun setNegativeButton(textButton: String, onNegativeClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.negativeTextButton = textButton
+                this.negativeListener = onNegativeClickListener
+            }
+
             fun setInputType (inputType: Int) = apply { this.inputType = inputType }
             fun setTextHint (texto : String) = apply { this.textHint = texto }
             fun setEndIconClearText (value: Boolean) = apply { this.endIconClearText = value }
             fun setImeOptions (editorInfo: Int) = apply { this.imeOptions = editorInfo }
 
-            fun setPositiveButton(textButton: String, onClickListener: ((BottomSheetDx, String) -> Unit)?) = apply {
+            fun setDropdownItems (items: List<String>) = apply { this.dropdownItems = items }
+        }
+        class PickerNumber: Builder() {
+
+            internal var onPickerNumberListener: ((BottomSheetDx, Int) -> Unit)? = null
+            public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
+            public override fun setTitle(title: String) = apply { this.title = title }
+            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
+            public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
+            public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
+            public override fun setOnCancelListener(onCancelListener: (() -> Unit)?) = apply { this.onCancelListener = onCancelListener }
+
+            fun setOnPickerNumberListener(textButton: String, onPickerNumberListener: ((BottomSheetDx, Int) -> Unit)?) = apply {
                 this.positiveTextButton = textButton
-                this.inputListener = onClickListener
-            }
-            fun setNegativeButton(textButton: String, onClickListener: ((BottomSheetDx) -> Unit)?) = apply {
-                this.negativeTextButton = textButton
-                this.negativeListener = onClickListener
+                this.onPickerNumberListener = onPickerNumberListener
             }
 
-            fun setOnCancelListener(onCanelListener: ((BottomSheetDx) -> Unit)?) = apply {
-                this.onCanelListener = onCanelListener
+            fun setNegativeButton(textButton: String, onNegativeClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.negativeTextButton = textButton
+                this.negativeListener = onNegativeClickListener
             }
 
         }
+        class Selector: Builder() {
+
+            internal var dropdownItems: List<String>? = null
+            internal var textHint: String? = null
+            internal var dropdownListener : ((BottomSheetDx, Int?) -> Unit)? = null
+            public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
+            public override fun setTitle(title: String) = apply { this.title = title }
+            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
+            public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
+            public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
+            public override fun setOnCancelListener(onCancelListener: (() -> Unit)?) = apply { this.onCancelListener = onCancelListener }
+
+            fun setHint(textHint: String) = apply { this.textHint = textHint }
+            fun setNegativeButton(textButton: String, onNegativeClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.negativeTextButton = textButton
+                this.negativeListener = onNegativeClickListener
+            }
+
+            fun setDropdownListener(textButton: String, onDropdownListener: ((BottomSheetDx, Int?) -> Unit)?) = apply {
+                this.positiveTextButton = textButton
+                this.dropdownListener = onDropdownListener
+            }
+            fun setDropdownItems (items: List<String>) = apply { this.dropdownItems = items }
+        }
+
+        class Custom : Builder() {
+
+            internal var customLayout: Int? = null
+            internal var viewStubCallBack :( (ViewStub) -> Unit)? = null
+            public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
+            public override fun setTitle(title: String) = apply { this.title = title }
+            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
+            public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
+            public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
+            public override fun setOnCancelListener(onCancelListener: (() -> Unit)?) = apply { this.onCancelListener = onCancelListener }
+
+            fun setPositiveButton(textButton: String, onPositiveClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.positiveTextButton = textButton
+                this.positiveListener = onPositiveClickListener
+            }
+            fun setNegativeButton(textButton: String, onNegativeClickListener: ((BottomSheetDx) -> Unit)?) = apply {
+                this.negativeTextButton = textButton
+                this.negativeListener = onNegativeClickListener
+            }
+
+            fun setCustomLayout(@LayoutRes customLayout: Int, viewStubCallBack: (ViewStub) -> Unit ) = apply {
+                this.customLayout = customLayout
+                this.viewStubCallBack = viewStubCallBack
+            }
+        }
+
     }
+
 
 }

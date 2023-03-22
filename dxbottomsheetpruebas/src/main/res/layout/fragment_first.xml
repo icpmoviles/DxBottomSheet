@@ -31,8 +31,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btn_info_dialogo"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_info_dialogo"
         app:layout_constraintBottom_toBottomOf="@id/btn_action_dialogo"
         android:text="Mostrar lottie dialogo"/>
 
@@ -42,9 +42,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btn_info_dialogo"
+        app:layout_constraintTop_toBottomOf="@id/btn_lottie_dialogo"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_input_dialogo"
         android:text="Mostrar action dialogo"/>
 
     <com.google.android.material.button.MaterialButton
@@ -54,8 +54,37 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btn_action_dialogo"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_number_picker"
         android:text="Mostrar input dialogo"/>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_number_picker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_input_dialogo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_selector"
+        android:text="Mostrar picker dialogo"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_selector"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_number_picker"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_custom"
+        android:text="Mostrar dropdown dialogo"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_custom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_selector"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:text="Mostrar dropdown dialogo"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
