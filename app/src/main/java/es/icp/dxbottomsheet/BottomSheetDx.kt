@@ -467,7 +467,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                     }
                     is DxViewModel.UiState.OnScannerClickListener -> {
                         viewModel.newUiState(DxViewModel.UiState.Loading)
-                        barcodeListener?.invoke(this@BottomSheetDx, viewModel.valorScanner.value.toString())
+                        barcodeListener?.invoke(this@BottomSheetDx, viewModel.textoInput.value.orEmpty())
                         if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
                     }
                     is DxViewModel.UiState.OnClickPositiveButton -> {
@@ -477,7 +477,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                     }
                     is DxViewModel.UiState.OnInputClickListener -> {
                         viewModel.newUiState(DxViewModel.UiState.Loading)
-                        inputListener?.invoke(this@BottomSheetDx, viewModel.textoInput.value.toString())
+                        inputListener?.invoke(this@BottomSheetDx, viewModel.textoInput.value.orEmpty())
                         if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
                     }
                     is DxViewModel.UiState.OnClickNegativeButton -> {
@@ -575,8 +575,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             inputLayout?.error = error
         }
         viewModel.valorScanner.observe(viewLifecycleOwner) { value ->
-            value?.let {txtInput?.setText(it) }
-
+            value?.let { txtInput?.setText(it) }
         }
         btnCancelarBottomSheet.apply {
             text = "Escanear"
