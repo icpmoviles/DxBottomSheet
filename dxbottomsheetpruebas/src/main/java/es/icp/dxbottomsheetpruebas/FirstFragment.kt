@@ -3,18 +3,15 @@ package es.icp.dxbottomsheetpruebas
 import android.os.Bundle
 import android.text.InputType
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.widget.doAfterTextChanged
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import es.icp.dxbottomsheet.BottomSheetDx
-import es.icp.dxbottomsheet.databinding.InputLayoutBinding
 import es.icp.dxbottomsheetpruebas.databinding.FragmentFirstBinding
 import es.icp.dxbottomsheetpruebas.databinding.PruebaDxBinding
 import kotlinx.coroutines.Dispatchers
@@ -88,7 +85,7 @@ class FirstFragment : Fragment() {
                         delay(4000)
                         Toast.makeText(requireContext(), "Despues del delay", Toast.LENGTH_SHORT)
                             .show()
-                        it.setInitialUiState()
+                        it.resetUiState()
                     }
                 }
                 .setNegativeButton("Salir sin guardar") {
@@ -97,7 +94,7 @@ class FirstFragment : Fragment() {
                         withContext(Dispatchers.IO){  delay(4000) }
                         if (fail) {
                             Toast.makeText(context, "Ha ocurrido un error", Toast.LENGTH_SHORT).show()
-                            it.setInitialUiState()
+                            it.resetUiState()
                         }
                         else {
                             Toast.makeText(context, "Todo ha ido perita", Toast.LENGTH_SHORT).show()
@@ -113,23 +110,27 @@ class FirstFragment : Fragment() {
             BottomSheetDx.Builder.Input()
                 .setIcon(es.icp.dxbottomsheet.R.drawable.ic_wifi)
                 .setTitle("Dialogo de entrada")
-                .setMessage("Mensaje de prueba del dialogo de entrada")
+//                .setMessage("Mensaje de prueba del dialogo de entrada")
+//                .setText("Texto de prueba bitch")
+                .setControlDismiss(true)
+                .setEndIconClearText(true)
                 .setInputListener("Aceptar") { dx, text ->
                     Log.w("DIALOGO", "Texto introducido: $text")
                     lifecycleScope.launch {
                         delay(4000)
-//                        dx.setInitialUiState()
+                        dx.setInputError("CODIGO NO VALIDO")
+                        delay(2000)
+                        dx.resetUiState()
                     }
                 }
-                .setDropdownItems(arrayListOf("Opcion 1", "Opcion 2", "Opcion 3"))
                 .setTextHint("Introduce un texto")
                 .setInputType( InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
                 .setImeOptions(EditorInfo.IME_ACTION_NONE)
-                .setEndIconClearText(false)
 //                .setControlDismiss(true)
                 .setOnCancelListener {
                     Log.w("DIALOGO", "Dialogo cancelado")
                 }
+                .setErrorMessage("Este campo no puede estar vacio")
                 .buildAndShow(childFragmentManager)
         }
 
@@ -137,7 +138,7 @@ class FirstFragment : Fragment() {
             BottomSheetDx.Builder.PickerNumber()
                 .setIcon(es.icp.dxbottomsheet.R.drawable.ic_wifi)
                 .setTitle("Dialogo de entrada")
-                .setMessage("Mensaje de prueba del dialogo de entrada")
+                .setMessage("Mensaje de prueba del dialogo de entrada \nMensaje de prueba del dialogo de entrada")
                 .setOnPickerNumberListener("Aceptar") { dx, int ->
                     Log.w("DIALOGO", "Texto introducido: $int")
                 }
@@ -194,6 +195,30 @@ class FirstFragment : Fragment() {
                 .setControlDismiss(false)
                 .buildAndShow(childFragmentManager)
 
+
+        }
+
+        binding.btnBarcode.setOnClickListener {
+            BottomSheetDx.Builder.Barcode()
+                .setIcon(es.icp.dxbottomsheet.R.drawable.ic_wifi)
+                .setTitle("Dialogo de entrada")
+                .setMessage("Mensaje de prueba del dialogo de entrada")
+                .setTextHint("Codigo de barras")
+                .setEndIconClearText(true)
+                .setErrorMessage("Este campo no puede estar vacio")
+                .setImeOptions(EditorInfo.IME_ACTION_DONE)
+                .setInputType(InputType.TYPE_CLASS_TEXT)
+                .setControlDismiss(true)
+                .setPositiveButton("Aceptar") { dx, text ->
+                    Log.w("DIALOGO", "Texto introducido: $text")
+                    lifecycleScope.launch {
+                        delay(4000)
+                        dx.setInputError("CODIGO NO VALIDO")
+                        delay(2000)
+                        dx.resetUiState()
+                    }
+                }
+                .buildAndShow(parentFragmentManager)
 
         }
     }

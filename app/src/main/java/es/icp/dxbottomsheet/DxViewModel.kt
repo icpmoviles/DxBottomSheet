@@ -27,14 +27,23 @@ class DxViewModel : ViewModel() {
     val dropSelecction: LiveData<Int?> get() = _dropSelecction
     fun setDropSelecction(position: Int?) = _dropSelecction.postValue(position)
 
+    private val _textoErrorInput = MutableLiveData("")
+    val textoErrorInput: LiveData<String> get() = _textoErrorInput
+    fun setTextoErrorInput(texto: String) = _textoErrorInput.postValue(texto)
+
+    private val _valorScanner = MutableLiveData<String?>(null)
+    val valorScanner: LiveData<String?> get() = _valorScanner
+    fun setValorScanner(valor: String) = _valorScanner.postValue(valor)
     sealed class UiState {
         object Initial : UiState()
+
+        object Reset : UiState()
         object OnClickPositiveButton : UiState()
         object OnClickNegativeButton : UiState()
         object OnInputClickListener : UiState()
         object OnNumPickerClickListener : UiState()
-
         object OnDropDownClickListener : UiState()
+        object OnScannerClickListener : UiState()
         object Loading : UiState()
         object Hide: UiState()
     }

@@ -20,6 +20,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/content_container"
             android:elevation="25dp">
 
             <View
@@ -105,7 +106,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toTopOf="@id/container_buttons_bottom_sheet"
-            >
+            android:paddingTop="16dp">
 
             <TextView
                 android:id="@+id/txt_message_bottom_sheet"
@@ -114,7 +115,6 @@
                 style="@style/TextAppearance.MaterialComponents.Subtitle1"
                 android:textSize="16sp"
                 android:textAlignment="center"
-                android:layout_marginTop="16dp"
                 android:layout_marginStart="14dp"
                 android:layout_marginBottom="16dp"
                 android:layout_marginEnd="14dp"
@@ -127,7 +127,7 @@
                 android:layout_height="wrap_content"
                 android:inflatedId="@+id/view_stub_inflated"
                 android:layout="@layout/imagen_layout"
-                android:layout_marginBottom="16dp"
+
                 />
 
 
@@ -173,7 +173,6 @@
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-
             app:layout_constraintTop_toBottomOf="@id/content_container">
 
             <com.google.android.material.button.MaterialButton
