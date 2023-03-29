@@ -9,8 +9,8 @@
 
     <ImageView
         android:id="@+id/picker_minus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         android:src="@drawable/ic_minus"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -25,7 +25,7 @@
     <TextView
         android:id="@+id/txt_number"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         app:layout_constraintStart_toEndOf="@id/picker_minus"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -34,14 +34,14 @@
         tools:text="12"
         android:layout_marginEnd="18dp"
         android:layout_marginStart="18dp"
-        android:layout_gravity="center_vertical"
+        android:gravity="center"
         />
 
 
     <ImageView
         android:id="@+id/picker_mas"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         android:src="@drawable/ic_mas"
         app:layout_constraintStart_toEndOf="@id/txt_number"
         app:layout_constraintTop_toTopOf="parent"

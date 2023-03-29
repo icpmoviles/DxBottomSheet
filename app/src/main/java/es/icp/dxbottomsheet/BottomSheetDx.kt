@@ -1,21 +1,29 @@
 package es.icp.dxbottomsheet
 
+import android.Manifest
+import android.app.Activity
 import android.app.Dialog
 import android.content.DialogInterface
+import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewStub
-import android.widget.ArrayAdapter
-import android.widget.AutoCompleteTextView
-import android.widget.ImageView
-import android.widget.TextView
+import android.widget.*
+import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.annotation.LayoutRes
 import androidx.annotation.RawRes
 import androidx.annotation.StyleRes
+import androidx.core.app.ActivityCompat
+import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.viewModels
@@ -28,8 +36,13 @@ import com.airbnb.lottie.LottieDrawable
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.zxing.integration.android.IntentIntegrator
+import com.journeyapps.barcodescanner.BarcodeView
 import es.icp.dxbottomsheet.databinding.BottomSheetDxBinding
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
@@ -62,6 +75,9 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
     private var textHint: String? = null
     private var endIconClearText: Boolean = false
     private var imeOptions: Int? = null
+    private var inputLayout: TextInputLayout? = null
+    private var textoInput: String? = null
+    private var errorMessage: String? = null
 
     private var dropdownItems: List<String>? = null
 
@@ -72,6 +88,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
     private var onCancelListener : (() -> Unit)? = null
     private var onPickerNumberListener : ((BottomSheetDx, Int) -> Unit)? = null
     private var onSelectorListener: ((BottomSheetDx, Int?) -> Unit)? = null
+    private var barcodeListener: ((BottomSheetDx, String) -> Unit)? = null
 
     private var positiveTextButton: String? = null
     private var negativeTextButton: String? = null
@@ -79,6 +96,10 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
     private var customLayout: Int? = null
 
     private var viewStubCallBack : ((ViewStub) -> Unit)? = null
+
+    private var barcodeView: BarcodeView? = null
+    private var barcodeContainer : MaterialCardView? = null
+
 
     companion object {
         const val TAG = "BottomSheetDx"
@@ -88,23 +109,20 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         private const val ARG_CANCEL_ON_TOUCH_OUTSIDE = "argDxCancelOnTouchOutSide"
         private const val ARG_CONTROL_DISMISS = "argDxControlDismiss"
         private const val ARG_CANCELABLE = "argDxTcancelable"
-
         private const val ARG_THEME = "argDxTheme"
         private const val ARG_LOTTIE_FILE = "argDxLottieFile"
-
         private const val ARG_LOTTIE_LOOP = "argDxLottieLoop"
         private const val ARG_IMAGEN_FILE = "argDxImagenFile"
-
         private const val ARG_POSITIVE_TEXT_BUTTON = "argDxPositiveTextButton"
         private const val ARG_NEGATIVE_TEXT_BUTTON = "argDxNegativeTextButton"
         private const val ARG_INPUT_TYPE = "argDxInputType"
         private const val ARG_INPUT_HINT = "argDxInputHint"
         private const val ARG_END_ICON_CLEAR_TEXT = "argDxEndIconClearText"
         private const val ARG_IME_OPTIONS = "argDxImeOptions"
-
+        private const val ARG_TEXTO_INPUT = "argDxTextInput"
         private const val ARG_TYPE_LAYOUT = "argDxTypeLayout"
-
         private const val ARG_CUSTOM_LAYOUT = "argDxCustomLayout"
+        private const val ARG_ERROR_MESSAGE = "argDxErrorMessage"
 
         @JvmStatic
         private fun newInstance(
@@ -124,10 +142,12 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             controlDismiss: Boolean = false,
             inputType: Int? = null,
 
+            textInput: String? = null,
             textHint : String? = null,
             endIconClearText : Boolean = true,
             imeOptions: Int? = null,
             typeLayout: TypeLayout? = null,
+            errorMessage: String? = null,
 
             onCancelListener: (() -> Unit)? = null,
             onPositiveClickButton: ((BottomSheetDx) -> Unit)? = null,
@@ -136,6 +156,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             onPickerNumberListener : ((BottomSheetDx, Int) -> Unit)? = null,
             onSelectorListener: ((BottomSheetDx, Int?) -> Unit)? = null,
             dropdownItems: List<String>? = null,
+            barcodeListener: ((BottomSheetDx, String) -> Unit)? = null,
 
             @LayoutRes customLayout: Int? = null,
             viewStubCallBack: ((ViewStub) -> Unit)? = null
@@ -150,6 +171,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                 this.dropdownItems = dropdownItems
                 this.onSelectorListener = onSelectorListener
                 this.viewStubCallBack = viewStubCallBack
+                this.barcodeListener = barcodeListener
                 arguments = Bundle().apply {
                     icon?.let { putInt(ARG_ICON, it) }
                     putString(ARG_TITLE, title)
@@ -169,6 +191,8 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                     imagenFile?.let { putInt(ARG_IMAGEN_FILE, it) }
                     typeLayout?.let { putSerializable(ARG_TYPE_LAYOUT, it) }
                     customLayout?.let { putInt(ARG_CUSTOM_LAYOUT, it) }
+                    textInput?.let { putString(ARG_TEXTO_INPUT, it) }
+                    errorMessage?.let { putString(ARG_ERROR_MESSAGE, it) }
                 }
             }
 
@@ -237,7 +261,9 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                         onCancelListener = builder.onCancelListener,
                         onNegativeClickButton = builder.negativeListener,
                         typeLayout = TypeLayout.INPUT,
-                        dropdownItems = builder.dropdownItems
+                        textInput = builder.texto,
+                        errorMessage = builder.errorMessage
+
                     )
                 }
                 is Builder.Selector -> {
@@ -295,9 +321,30 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
 
                     )
                 }
+                is Builder.Barcode->{
+                    newInstance(
+                        icon = builder.icon,
+                        title = builder.title ?: "No has puesto titulo",
+                        message = builder.message,
+                        positiveTextButton = builder.positiveTextButton,
+                        cancelOnTouchOutSide = builder.cancelOnTouchOutSide,
+                        cancelable = builder.cancelable,
+                        theme = builder.theme,
+                        controlDismiss = builder.controlDismiss,
+                        onCancelListener = builder.onCancelListener,
+                        typeLayout = TypeLayout.BARCODE,
+                        barcodeListener = builder.onBarcodeListener,
+                        inputType = builder.inputType,
+                        textHint = builder.textHint,
+                        endIconClearText = builder.endIconClearText,
+                        imeOptions = builder.imeOptions,
+                        errorMessage = builder.errorMessage,
+                        textInput = builder.texto,
+
+                    )
+                }
             }
     }
-
 
     override fun getTheme(): Int = customTheme.takeIf { it != 0 } ?: R.style.BottomSheetDxBaseTheme
 
@@ -310,27 +357,23 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             cancelOnTouchOutSide = it.getBoolean(ARG_CANCEL_ON_TOUCH_OUTSIDE)
             cancel = it.getBoolean(ARG_CANCELABLE)
             controlDismiss = it.getBoolean(ARG_CONTROL_DISMISS)
-
             lottieFile = it.getInt(ARG_LOTTIE_FILE)
             lottieLoop = it.getBoolean(ARG_LOTTIE_LOOP)
-
             positiveTextButton = it.getString(ARG_POSITIVE_TEXT_BUTTON)
             negativeTextButton = it.getString(ARG_NEGATIVE_TEXT_BUTTON)
-
             customTheme = it.getInt(ARG_THEME, R.style.BottomSheetDxBaseTheme)
-
             inputType = it.getInt(ARG_INPUT_TYPE)
             textHint = it.getString(ARG_INPUT_HINT)
             endIconClearText = it.getBoolean(ARG_END_ICON_CLEAR_TEXT)
             imeOptions = it.getInt(ARG_IME_OPTIONS)
             imagenFile = it.getInt(ARG_IMAGEN_FILE)
-
             typeLayout =
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
                     it.getSerializable(ARG_TYPE_LAYOUT, TypeLayout::class.java)
                 else   it.getSerializable(ARG_TYPE_LAYOUT) as TypeLayout
-
             customLayout = it.getInt(ARG_CUSTOM_LAYOUT)
+            textoInput = it.getString(ARG_TEXTO_INPUT)
+            errorMessage = it.getString(ARG_ERROR_MESSAGE)
         }
     }
     override fun onCancel(dialog: DialogInterface) {
@@ -387,7 +430,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
         setupCommonViews()
         setupButtons()
-
+        initUiState()
         when (typeLayout) {
             TypeLayout.LOTTIE -> setupViewLottie()
             TypeLayout.IMAGE -> setupViewImage()
@@ -395,9 +438,12 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             TypeLayout.PICKER_NUMBER -> setupViewPickerNumber()
             TypeLayout.SELECTOR -> setupViewSelector()
             TypeLayout.CUSTOM -> setupViewCustom()
+            TypeLayout.BARCODE -> setupViewBarcode()
             else -> {}
         }
+    }
 
+    private fun initUiState() =
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.flowWithLifecycle(
                 lifecycle = viewLifecycleOwner.lifecycle,
@@ -405,14 +451,24 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             ).collectLatest { state ->
                 when (state) {
                     is DxViewModel.UiState.Initial -> {
+                        binding.btnCancelarBottomSheet.isEnabled = true
+                        binding.dxProgressBar.hide()
+                    }
+                    is DxViewModel.UiState.Reset -> {
                         binding.btnAceptarBottomSheet.isEnabled = true
                         binding.btnCancelarBottomSheet.isEnabled = true
+//                        inputLayout?.error = null
                         binding.dxProgressBar.hide()
                     }
                     is DxViewModel.UiState.Loading -> {
                         binding.btnAceptarBottomSheet.isEnabled = false
                         binding.btnCancelarBottomSheet.isEnabled = false
                         binding.dxProgressBar.visible()
+                    }
+                    is DxViewModel.UiState.OnScannerClickListener -> {
+                        viewModel.newUiState(DxViewModel.UiState.Loading)
+                        barcodeListener?.invoke(this@BottomSheetDx, viewModel.valorScanner.value.toString())
+                        if (!controlDismiss) viewModel.newUiState(DxViewModel.UiState.Hide)
                     }
                     is DxViewModel.UiState.OnClickPositiveButton -> {
                         viewModel.newUiState(DxViewModel.UiState.Loading)
@@ -445,6 +501,94 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                 }
             }
         }
+
+    /*
+     * METODOS PUBLICOS
+     */
+    fun show(fragmentManager: FragmentManager) = show(fragmentManager, TAG)
+    fun dissmis() = viewModel.newUiState(DxViewModel.UiState.Hide)
+    fun resetUiState() = viewModel.newUiState(DxViewModel.UiState.Reset)
+    fun setInputError(msg:String) = viewModel.setTextoErrorInput(msg)
+
+    private fun ocultarLector() {
+        barcodeContainer?.goneAlpha()
+        inputLayout?.visibleAlpha()
+        binding.btnCancelarBottomSheet.text = "Escanear"
+        barcodeView?.pause()
+    }
+
+    private fun mostrarLector() {
+        binding.btnCancelarBottomSheet.text = "Cerrar"
+        inputLayout?.goneAlpha()
+        barcodeContainer?.visibleAlpha()
+        IntentIntegrator.forSupportFragment(this@BottomSheetDx)
+            .also {
+                it.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES)
+                it.setCameraId(0)
+                it.setBeepEnabled(true)
+                it.setOrientationLocked(true)
+                it.setBarcodeImageEnabled(true)
+            }
+
+        barcodeView?.resume()
+        leerCodigo()
+    }
+
+    private fun leerCodigo(){
+        barcodeView?.decodeContinuous { result ->
+            barcodeView?.pause()
+            viewModel.setValorScanner(result.text)
+            Log.w("BARCODE", "leerCodigo: ${result.text}")
+            ocultarLector()
+        }
+    }
+    private fun setupViewBarcode() = with(binding) {
+        btnAceptarBottomSheet.isEnabled = false
+        viewStub.layoutResource = R.layout.barcode_layout
+        var txtInput: TextInputEditText? = null
+        viewStub.inflate().also { vs ->
+
+            barcodeView = vs.findViewById<BarcodeView>(R.id.barcode_view)
+            barcodeContainer = vs.findViewById<MaterialCardView>(R.id.barcode_container)
+
+            inputLayout = vs.findViewById<TextInputLayout>(R.id.input_layout_dx)
+                .apply {
+                    this.hint = textHint.orEmpty()
+                    this.endIconMode = if (endIconClearText) TextInputLayout.END_ICON_CLEAR_TEXT else TextInputLayout.END_ICON_NONE
+
+                }
+            txtInput = vs.findViewById<TextInputEditText>(R.id.txt_input_dx)
+                .apply {
+                    this@BottomSheetDx.inputType?.let { this.inputType = it }
+                    this@BottomSheetDx.imeOptions?.let { this.imeOptions = it }
+                    this.setText(textoInput.orEmpty())
+                    this.doOnTextChanged { text, _, _, _ ->
+                        viewModel.setTextoInput(text.toString())
+                        errorMessage?.let { msg->
+                            inputLayout?.error = if (text.isNullOrBlank()) msg else null
+                        }
+                        btnAceptarBottomSheet.isEnabled = text?.toString()?.isNotEmpty() ?: false
+                    }
+                }
+        }
+        viewModel.textoErrorInput.observe(viewLifecycleOwner) { error ->
+            inputLayout?.error = error
+        }
+        viewModel.valorScanner.observe(viewLifecycleOwner) { value ->
+            value?.let {txtInput?.setText(it) }
+
+        }
+        btnCancelarBottomSheet.apply {
+            text = "Escanear"
+            icon = ResourcesCompat.getDrawable(resources, R.drawable.ic_barcode, null)
+            iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+            setIconTintResource(R.color.btn_text_selector)
+            setOnClickListener {
+                if (barcodeContainer?.isVisible == true) ocultarLector()
+                else mostrarLector()
+            }
+        }
+
     }
 
     private fun setupViewCustom() = binding.apply {
@@ -461,22 +605,25 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         }
     }
     private fun setupButtons() = binding.apply {
-        containerButtonsBottomSheet.show(onPositiveClickButton != null || onNegativeClickButton != null || inputListener != null || onPickerNumberListener != null || onSelectorListener != null)
+        containerButtonsBottomSheet.show(
+            onPositiveClickButton != null || onNegativeClickButton != null || inputListener != null ||
+                    onPickerNumberListener != null || onSelectorListener != null || barcodeListener != null)
         btnAceptarBottomSheet.apply {
-            show(onPositiveClickButton != null || inputListener != null || onPickerNumberListener != null || onSelectorListener != null)
+            show(onPositiveClickButton != null || inputListener != null || onPickerNumberListener != null || onSelectorListener != null || barcodeListener != null)
             text = positiveTextButton.orEmpty()
             setOnClickListener {
                 when {
                     inputListener != null -> viewModel.newUiState(DxViewModel.UiState.OnInputClickListener)
                     onPickerNumberListener != null ->viewModel.newUiState(DxViewModel.UiState.OnNumPickerClickListener)
                     onSelectorListener != null -> viewModel.newUiState(DxViewModel.UiState.OnDropDownClickListener)
+                    barcodeListener != null -> viewModel.newUiState(DxViewModel.UiState.OnScannerClickListener)
                     else -> viewModel.newUiState(DxViewModel.UiState.OnClickPositiveButton)
                 }
             }
         }
 
         btnCancelarBottomSheet.apply {
-            show(onNegativeClickButton != null)
+            show(onNegativeClickButton != null || barcodeListener != null)
             text = negativeTextButton.orEmpty()
             setOnClickListener {
                 viewModel.newUiState(DxViewModel.UiState.OnClickNegativeButton)
@@ -525,21 +672,33 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         }
     }
     private fun setupViewInput() = binding.apply {
-
+        btnAceptarBottomSheet.isEnabled = false
         viewStub.layoutResource = R.layout.input_layout
         viewStub.inflate().also { vs ->
-            vs.findViewById<TextInputLayout>(R.id.input_layout_dx)
+            inputLayout = vs.findViewById<TextInputLayout>(R.id.input_layout_dx)
                 .apply {
                     this.hint = textHint.orEmpty()
                     this.endIconMode = if (endIconClearText) TextInputLayout.END_ICON_CLEAR_TEXT else TextInputLayout.END_ICON_NONE
+
                 }
             vs.findViewById<TextInputEditText>(R.id.txt_input_dx)
                 .apply {
                     this@BottomSheetDx.inputType?.let { this.inputType = it }
                     this@BottomSheetDx.imeOptions?.let { this.imeOptions = it }
-                    this.doOnTextChanged { text, _, _, _ -> viewModel.setTextoInput(text.toString()) }
+                    this.setText(textoInput.orEmpty())
+                    this.doOnTextChanged { text, _, _, _ ->
+                        viewModel.setTextoInput(text.toString())
+                        errorMessage?.let { msg->
+                            inputLayout?.error = if (text.isNullOrEmpty()) msg else null
+                        }
+                        btnAceptarBottomSheet.isEnabled = text?.toString()?.isNotEmpty() ?: false
+                    }
                 }
         }
+        viewModel.textoErrorInput.observe(viewLifecycleOwner) { error ->
+            inputLayout?.error = error
+        }
+
     }
 
     private fun setupViewSelector() = binding.apply {
@@ -559,14 +718,8 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         }
     }
 
-    fun show(fragmentManager: FragmentManager) = show(fragmentManager, TAG)
 
-    fun dissmis() = viewModel.newUiState(DxViewModel.UiState.Hide)
-    fun setInitialUiState() = viewModel.newUiState(DxViewModel.UiState.Initial)
 
-    enum class TypeLayout {
-        INFO, ACTION, LOTTIE, INPUT, IMAGE, PICKER_NUMBER, SELECTOR, CUSTOM
-    }
 
     sealed class Builder {
 
@@ -676,10 +829,12 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
 
             internal var inputType : Int? = null
             internal var textHint : String? = null
+            internal var texto: String? = null
             internal var endIconClearText : Boolean = true
             internal var imeOptions : Int? = null
             internal var inputListener: ((BottomSheetDx, String) -> Unit)? = null
-            internal var dropdownItems: List<String>? = null
+            internal var errorMessage : String? = null
+
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
             public override fun setMessage(message: String) = apply { this.message = message }
@@ -699,12 +854,16 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                 this.negativeListener = onNegativeClickListener
             }
 
+
+            fun setText(texto: String) = apply { this.texto = texto }
             fun setInputType (inputType: Int) = apply { this.inputType = inputType }
             fun setTextHint (texto : String) = apply { this.textHint = texto }
             fun setEndIconClearText (value: Boolean) = apply { this.endIconClearText = value }
             fun setImeOptions (editorInfo: Int) = apply { this.imeOptions = editorInfo }
 
-            fun setDropdownItems (items: List<String>) = apply { this.dropdownItems = items }
+            fun setErrorMessage (message: String) = apply { this.errorMessage = message }
+//            fun settingsInput( inputLayout: ((TextInputLayout)-> Unit)? = null) {  }
+
         }
         class PickerNumber: Builder() {
 
@@ -782,6 +941,40 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                 this.customLayout = customLayout
                 this.viewStubCallBack = viewStubCallBack
             }
+        }
+
+
+        class Barcode: Builder() {
+
+            internal var onBarcodeListener: ((BottomSheetDx, String) -> Unit)? = null
+            internal var inputType : Int? = null
+            internal var textHint : String? = null
+            internal var texto: String? = null
+            internal var endIconClearText : Boolean = true
+            internal var imeOptions : Int? = null
+            internal var errorMessage : String? = null
+            public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
+            public override fun setTitle(title: String) = apply { this.title = title }
+            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
+            public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
+            public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
+            public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
+            public override fun setOnCancelListener(onCancelListener: (() -> Unit)?) = apply { this.onCancelListener = onCancelListener }
+
+            fun setPositiveButton(textButton: String, onBarcodeListener: ((BottomSheetDx, String) -> Unit)?) = apply {
+                this.positiveTextButton = textButton
+                this.onBarcodeListener = onBarcodeListener
+            }
+
+            fun setText(texto: String) = apply { this.texto = texto }
+            fun setInputType (inputType: Int) = apply { this.inputType = inputType }
+            fun setTextHint (texto : String) = apply { this.textHint = texto }
+            fun setEndIconClearText (value: Boolean) = apply { this.endIconClearText = value }
+            fun setImeOptions (editorInfo: Int) = apply { this.imeOptions = editorInfo }
+
+            fun setErrorMessage (message: String) = apply { this.errorMessage = message }
+
         }
 
     }
