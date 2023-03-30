@@ -1,11 +1,8 @@
 package es.icp.dxbottomsheet
 
-import android.Manifest
-import android.app.Activity
 import android.app.Dialog
 import android.content.DialogInterface
-import android.content.pm.PackageManager
-import android.content.res.ColorStateList
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -14,14 +11,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewStub
 import android.widget.*
-import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.annotation.LayoutRes
 import androidx.annotation.RawRes
 import androidx.annotation.StyleRes
-import androidx.core.app.ActivityCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
@@ -30,7 +23,6 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.viewbinding.ViewBinding
 import com.airbnb.lottie.LottieAnimationView
 import com.airbnb.lottie.LottieDrawable
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -38,7 +30,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.zxing.integration.android.IntentIntegrator
@@ -68,6 +59,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
     private var lottieFile: Int? = null
     private var lottieLoop: Boolean = true
     private var imagenFile: Int? = null
+    private var bitmap: Bitmap? = null
 
 
     //CAMPOS PARA INPUT
@@ -123,7 +115,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         private const val ARG_TYPE_LAYOUT = "argDxTypeLayout"
         private const val ARG_CUSTOM_LAYOUT = "argDxCustomLayout"
         private const val ARG_ERROR_MESSAGE = "argDxErrorMessage"
-
+        private const val ARG_BITMAP = "argDxBitmap"
         @JvmStatic
         private fun newInstance(
             @DrawableRes icon: Int? = null,
@@ -136,6 +128,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             @RawRes lottieFile: Int? = null,
             lottieLoop: Boolean = true,
             @DrawableRes imagenFile: Int? = null,
+            bitmap: Bitmap? = null,
 
             positiveTextButton: String? = null,
             negativeTextButton: String? = null,
@@ -193,6 +186,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                     customLayout?.let { putInt(ARG_CUSTOM_LAYOUT, it) }
                     textInput?.let { putString(ARG_TEXTO_INPUT, it) }
                     errorMessage?.let { putString(ARG_ERROR_MESSAGE, it) }
+                    bitmap?.let { putParcelable(ARG_BITMAP, it) }
                 }
             }
 
@@ -222,6 +216,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                         onPositiveClickButton = builder.positiveListener,
                         theme = builder.theme,
                         imagenFile = builder.imageFile,
+                        bitmap = builder.bitmap,
                         typeLayout = if (builder.lottieFile != null) TypeLayout.LOTTIE else TypeLayout.IMAGE
                     )
                 }
@@ -374,6 +369,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             customLayout = it.getInt(ARG_CUSTOM_LAYOUT)
             textoInput = it.getString(ARG_TEXTO_INPUT)
             errorMessage = it.getString(ARG_ERROR_MESSAGE)
+            bitmap= it.getParcelable(ARG_BITMAP)
         }
     }
     override fun onCancel(dialog: DialogInterface) {
@@ -649,12 +645,17 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         }
     }
     private fun setupViewImage() = binding.apply {
-        imagenFile.takeIf { it != 0 }?.let { img ->
-            viewStub.layoutResource = R.layout.imagen_layout
-            viewStub.inflate().also {
-                it.findViewById<ImageView>(R.id.img_dx).apply { setImageResource(img) }
+        viewStub.layoutResource = R.layout.imagen_layout
+        viewStub.inflate().also {
+            it.findViewById<ImageView>(R.id.img_dx).apply {
+                imagenFile.takeIf { it != 0 }?.let { img ->
+                    setImageResource(img)
+                }
+                bitmap?.let { bmp -> setImageBitmap(bmp) }
             }
         }
+
+
     }
     private fun setupViewLottie() = binding.apply {
         lottieFile.takeIf { it != 0 }?.let { lottie ->
@@ -776,6 +777,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             internal var lottieFile: Int? = null
             internal var lottieLoop: Boolean = true
             internal var imageFile: Int? = null
+            internal var bitmap: Bitmap? = null
 
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
@@ -787,7 +789,9 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
             fun setLottie(@RawRes lottieRaw: Int) = apply { this.lottieFile = lottieRaw }
             fun setLottieLoop(lottieLoop: Boolean) = apply { this.lottieLoop = lottieLoop }
-            fun setImage(@DrawableRes image: Int) = apply { this.imageFile = image }
+            fun setImageResource(@DrawableRes image: Int) = apply { this.imageFile = image }
+
+            fun setImageBitmap(bitmap: Bitmap) = apply { this.bitmap = bitmap }
 
             public override fun setOnCancelListener(onCancelListener: (() -> Unit)?) = apply { this.onCancelListener = onCancelListener }
 
