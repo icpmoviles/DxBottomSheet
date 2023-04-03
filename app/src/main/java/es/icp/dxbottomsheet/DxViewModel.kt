@@ -20,6 +20,7 @@ class DxViewModel : ViewModel() {
 
     private val _numPicker = MutableLiveData(0)
     val numPicker: LiveData<Int> get() = _numPicker
+    fun setNumPicker(num: Int) = _numPicker.postValue(num)
     fun plusNumPicker() = _numPicker.postValue(_numPicker.value?.plus(1))
     fun minusNumPicker() { if (_numPicker.value != 0) _numPicker.postValue(_numPicker.value?.minus(1)) }
 

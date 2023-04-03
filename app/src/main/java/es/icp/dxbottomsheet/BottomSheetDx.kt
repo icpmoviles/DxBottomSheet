@@ -72,6 +72,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
     private var errorMessage: String? = null
 
     private var dropdownItems: List<String>? = null
+    private var initialValuePicker: Int? = null
 
     //LISTENERS
     private var onPositiveClickButton: ((BottomSheetDx) -> Unit)? = null
@@ -116,6 +117,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         private const val ARG_CUSTOM_LAYOUT = "argDxCustomLayout"
         private const val ARG_ERROR_MESSAGE = "argDxErrorMessage"
         private const val ARG_BITMAP = "argDxBitmap"
+        private const val ARG_INITIAL_VALUE_PICKER = "argDxInitialValuePicker"
         @JvmStatic
         private fun newInstance(
             @DrawableRes icon: Int? = null,
@@ -141,6 +143,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             imeOptions: Int? = null,
             typeLayout: TypeLayout? = null,
             errorMessage: String? = null,
+            initialValuePicker: Int? = null,
 
             onCancelListener: (() -> Unit)? = null,
             onPositiveClickButton: ((BottomSheetDx) -> Unit)? = null,
@@ -187,6 +190,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                     textInput?.let { putString(ARG_TEXTO_INPUT, it) }
                     errorMessage?.let { putString(ARG_ERROR_MESSAGE, it) }
                     bitmap?.let { putParcelable(ARG_BITMAP, it) }
+                    initialValuePicker?.let { putInt(ARG_INITIAL_VALUE_PICKER, it) }
                 }
             }
 
@@ -293,6 +297,8 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                         theme = builder.theme,
                         controlDismiss = builder.controlDismiss,
                         onPickerNumberListener = builder.onPickerNumberListener,
+                        onCancelListener = builder.onCancelListener,
+                        initialValuePicker = builder.initialValue,
                         typeLayout = TypeLayout.PICKER_NUMBER
                     )
                 }
@@ -370,6 +376,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             textoInput = it.getString(ARG_TEXTO_INPUT)
             errorMessage = it.getString(ARG_ERROR_MESSAGE)
             bitmap= it.getParcelable(ARG_BITMAP)
+            initialValuePicker = it.getInt(ARG_INITIAL_VALUE_PICKER)
         }
     }
     override fun onCancel(dialog: DialogInterface) {
@@ -628,6 +635,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
     }
     private fun setupViewPickerNumber() = binding.apply {
         viewStub.layoutResource = R.layout.picker_number_layout
+        viewModel.setNumPicker(initialValuePicker?:0)
         viewStub.inflate().also {
             it.findViewById<ImageView>(R.id.picker_minus).apply {
                 setOnClickListener { viewModel.minusNumPicker() }
@@ -871,6 +879,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         class PickerNumber: Builder() {
 
             internal var onPickerNumberListener: ((BottomSheetDx, Int) -> Unit)? = null
+            internal var initialValue : Int? = null
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
             public override fun setMessage(message: String) = apply { this.message = message }
@@ -890,6 +899,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                 this.negativeListener = onNegativeClickListener
             }
 
+            fun setInitialValue (value: Int) = apply { this.initialValue = value }
         }
         class Selector: Builder() {
 
