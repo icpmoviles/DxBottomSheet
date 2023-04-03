@@ -142,6 +142,7 @@ class FirstFragment : Fragment() {
                 .setOnPickerNumberListener("Aceptar") { dx, int ->
                     Log.w("DIALOGO", "Texto introducido: $int")
                 }
+                .setInitialValue(10)
                 .setNegativeButton("Cancelar"){ dx ->
                     Log.w("DIALOGO", "Dialogo cancelado")
                 }
