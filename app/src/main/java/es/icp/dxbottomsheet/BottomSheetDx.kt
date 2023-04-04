@@ -49,7 +49,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
     private var typeLayout: TypeLayout? = null
     private var icon: Int? = null
     private var title: String? = null
-    private var message: String? = null
+    private var message: CharSequence? = null
     private var cancelOnTouchOutSide: Boolean = true
     private var cancel: Boolean = true
     private var controlDismiss: Boolean = false
@@ -122,7 +122,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         private fun newInstance(
             @DrawableRes icon: Int? = null,
             title: String,
-            message: String? = null,
+            message: CharSequence? = null,
             cancelOnTouchOutSide: Boolean = true,
             cancelable: Boolean = true,
             theme: Int? = null,
@@ -171,7 +171,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                 arguments = Bundle().apply {
                     icon?.let { putInt(ARG_ICON, it) }
                     putString(ARG_TITLE, title)
-                    putString(ARG_MESSAGE, message)
+                    putCharSequence(ARG_MESSAGE, message)
                     putBoolean(ARG_CANCEL_ON_TOUCH_OUTSIDE, cancelOnTouchOutSide)
                     putBoolean(ARG_CANCELABLE, cancelable)
                     lottieFile?.let { putInt(ARG_LOTTIE_FILE, it) }
@@ -354,7 +354,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         arguments?.let {
             icon = it.getInt(ARG_ICON)
             title = it.getString(ARG_TITLE)
-            message = it.getString(ARG_MESSAGE)
+            message = it.getCharSequence(ARG_MESSAGE)
             cancelOnTouchOutSide = it.getBoolean(ARG_CANCEL_ON_TOUCH_OUTSIDE)
             cancel = it.getBoolean(ARG_CANCELABLE)
             controlDismiss = it.getBoolean(ARG_CONTROL_DISMISS)
@@ -603,7 +603,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         txtTituloBottomSheet.text = title
         txtMessageBottomSheet.apply {
             show(message != null)
-            text = message.orEmpty()
+            message?.let { text = it }
         }
     }
     private fun setupButtons() = binding.apply {
@@ -733,7 +733,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
 
         internal var icon: Int? = null
         internal var title: String? = null
-        internal var message: String? = null
+        internal var message: CharSequence? = null
         internal var cancelOnTouchOutSide: Boolean = true
         internal var cancelable: Boolean = true
         internal var controlDismiss: Boolean = false
@@ -752,7 +752,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         fun buildAndShow(fragmentManager: FragmentManager) = build().show(fragmentManager)
         @Override protected abstract fun setIcon(@DrawableRes icon: Int): Builder
         @Override protected abstract fun setTitle(title: String): Builder
-        @Override protected abstract fun setMessage(message: String): Builder
+        @Override protected abstract fun setMessage(message: CharSequence): Builder
         @Override protected abstract fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean): Builder
         @Override protected abstract fun setCancelable(cancelable: Boolean): Builder
         @Override protected abstract fun setTheme(@StyleRes theme: Int): Builder
@@ -763,7 +763,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         class Info : Builder() {
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
-            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setMessage(message: CharSequence) = apply { this.message = message }
             public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
             public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
             public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
@@ -789,7 +789,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
 
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
-            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setMessage(message: CharSequence) = apply { this.message = message }
             public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
             public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
             public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
@@ -818,7 +818,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
 
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
-            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setMessage(message: CharSequence) = apply { this.message = message }
             public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
             public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
             public override fun setControlDismiss(controlDismiss: Boolean) = apply { this.controlDismiss = controlDismiss }
@@ -848,7 +848,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
 
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
-            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setMessage(message: CharSequence) = apply { this.message = message }
             public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
             public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
             public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
@@ -882,7 +882,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             internal var initialValue : Int? = null
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
-            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setMessage(message: CharSequence) = apply { this.message = message }
             public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
             public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
             public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
@@ -908,7 +908,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             internal var dropdownListener : ((BottomSheetDx, Int?) -> Unit)? = null
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
-            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setMessage(message: CharSequence) = apply { this.message = message }
             public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
             public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
             public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
@@ -927,14 +927,13 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             }
             fun setDropdownItems (items: List<String>) = apply { this.dropdownItems = items }
         }
-
         class Custom : Builder() {
 
             internal var customLayout: Int? = null
             internal var viewStubCallBack :( (ViewStub) -> Unit)? = null
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
-            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setMessage(message: CharSequence) = apply { this.message = message }
             public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
             public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
             public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
@@ -955,8 +954,6 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                 this.viewStubCallBack = viewStubCallBack
             }
         }
-
-
         class Barcode: Builder() {
 
             internal var onBarcodeListener: ((BottomSheetDx, String) -> Unit)? = null
@@ -968,7 +965,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             internal var errorMessage : String? = null
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
-            public override fun setMessage(message: String) = apply { this.message = message }
+            public override fun setMessage(message: CharSequence) = apply { this.message = message }
             public override fun setCancelOnTouchOutSide(cancelOnTouchOutSide: Boolean) = apply { this.cancelOnTouchOutSide = cancelOnTouchOutSide }
             public override fun setCancelable(cancelable: Boolean) = apply { this.cancelable = cancelable }
             public override fun setTheme(@StyleRes theme: Int) = apply { this.theme = theme }
