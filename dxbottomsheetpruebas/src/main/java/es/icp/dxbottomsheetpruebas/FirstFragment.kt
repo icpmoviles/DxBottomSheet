@@ -8,6 +8,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.core.text.bold
+import androidx.core.text.buildSpannedString
+import androidx.core.text.italic
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -47,16 +50,24 @@ class FirstFragment : Fragment() {
 
         binding.btnInfoDialogo.setOnClickListener {
 
+            val s = buildSpannedString {
+                append("Mensaje de prueba del dialogo de información")
+                bold { append("ESTO ESTA EN NEGRETA") }
+                italic { append("esto en cursiva") }
+
+            }
+
+
             BottomSheetDx.Builder.Info()
                 .setIcon(es.icp.dxbottomsheet.R.drawable.ic_delete)
                 .setTitle("Título")
-                .setMessage("Mensaje de prueba del dialogo de información")
+                .setMessage(s)
                 .buildAndShow(parentFragmentManager)
 
         }
 
         binding.btnLottieDialogo.setOnClickListener {
-
+            val s = "Mensaje de prueba del dialogo de información"
             BottomSheetDx.Builder.LottieOrImage()
                 .setIcon(es.icp.dxbottomsheet.R.drawable.ic_delete)
                 .setTitle("Título")
