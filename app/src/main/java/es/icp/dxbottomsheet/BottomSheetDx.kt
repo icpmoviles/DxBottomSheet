@@ -203,6 +203,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                         message = builder.message,
                         cancelOnTouchOutSide = builder.cancelOnTouchOutSide,
                         cancelable = builder.cancelable,
+                        onCancelListener = builder.onCancelListener,
                         theme = builder.theme,
                         typeLayout = TypeLayout.INFO
                     )
@@ -221,6 +222,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                         theme = builder.theme,
                         imagenFile = builder.imageFile,
                         bitmap = builder.bitmap,
+                        onCancelListener = builder.onCancelListener,
                         typeLayout = if (builder.lottieFile != null) TypeLayout.LOTTIE else TypeLayout.IMAGE
                     )
                 }
