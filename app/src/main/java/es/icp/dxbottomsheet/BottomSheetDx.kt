@@ -88,7 +88,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
 
     private var customLayout: Int? = null
 
-    private var viewStubCallBack : ((ViewStub) -> Unit)? = null
+    private var viewStubCallBack : ((ViewStub, BottomSheetDx) -> Unit)? = null
 
     private var barcodeView: BarcodeView? = null
     private var barcodeContainer : MaterialCardView? = null
@@ -155,7 +155,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
             barcodeListener: ((BottomSheetDx, String) -> Unit)? = null,
 
             @LayoutRes customLayout: Int? = null,
-            viewStubCallBack: ((ViewStub) -> Unit)? = null
+            viewStubCallBack: ((ViewStub, BottomSheetDx) -> Unit)? = null
 
         ) =
             BottomSheetDx().apply {
@@ -597,7 +597,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
 
     private fun setupViewCustom() = binding.apply {
         customLayout.takeIf { it != 0 }?.let { viewStub.layoutResource = it }
-        viewStubCallBack?.invoke(viewStub)
+        viewStubCallBack?.invoke(viewStub, this@BottomSheetDx)
     }
 
     private fun setupCommonViews() = binding.apply {
@@ -932,7 +932,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
         class Custom : Builder() {
 
             internal var customLayout: Int? = null
-            internal var viewStubCallBack :( (ViewStub) -> Unit)? = null
+            internal var viewStubCallBack :( (ViewStub, BottomSheetDx) -> Unit)? = null
             public override fun setIcon(@DrawableRes icon: Int) = apply { this.icon = icon }
             public override fun setTitle(title: String) = apply { this.title = title }
             public override fun setMessage(message: CharSequence) = apply { this.message = message }
@@ -951,7 +951,7 @@ open class BottomSheetDx : BottomSheetDialogFragment() {
                 this.negativeListener = onNegativeClickListener
             }
 
-            fun setCustomLayout(@LayoutRes customLayout: Int, viewStubCallBack: (ViewStub) -> Unit ) = apply {
+            fun setCustomLayout(@LayoutRes customLayout: Int, viewStubCallBack: (ViewStub, dx: BottomSheetDx) -> Unit ) = apply {
                 this.customLayout = customLayout
                 this.viewStubCallBack = viewStubCallBack
             }

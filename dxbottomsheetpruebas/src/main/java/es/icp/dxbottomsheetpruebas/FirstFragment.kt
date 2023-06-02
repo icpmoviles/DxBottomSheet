@@ -188,13 +188,16 @@ class FirstFragment : Fragment() {
                 .setIcon(es.icp.dxbottomsheet.R.drawable.ic_wifi)
                 .setTitle("Dialogo de entrada")
                 .setMessage("Mensaje de prueba del dialogo de entrada")
-                .setCustomLayout(R.layout.prueba_dx) {viewStub ->
+                .setCustomLayout(R.layout.prueba_dx) {viewStub, dx ->
                     viewStub.setOnInflateListener { stub, inflated ->
                         bindingStub = PruebaDxBinding.bind(inflated)
                         bindingStub?.inputPrueba?.hint = "FEDE"
                         bindingStub?.txtPrueba?.setText("Hola")
                         bindingStub?.txtPrueba?.doAfterTextChanged {
                             Log.w("LISTENER VIEWSTUB", it.toString())
+                        }
+                        bindingStub?.btnDxCustom?.setOnClickListener {
+                            dx.dissmis()
                         }
                     }
 
